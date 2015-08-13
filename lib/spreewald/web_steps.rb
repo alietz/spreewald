@@ -276,7 +276,7 @@ end
 
 Then /^the radio button "([^"]*)" should( not)? be (?:checked|selected)$/ do |field, negate|
   patiently do
-    page.send((negate ? :has_no_checked_field? : :has_checked_field?), field)
+    page.send((negate ? :has_no_checked_field? : :has_checked_field?), field).should == true
   end
 end
 
@@ -439,7 +439,7 @@ end
 # Checks that an element is actually present and hidden, also considering styles.
 # Within a selenium test, the browser is asked whether the element is really hidden.
 # In a non-selenium test, we only check for `.hidden`, `.invisible` or `style: display:none`
-Then /^(the tag )?"([^\"]+)" should be hidden/ do |tag, selector_or_text|
+Then /^(the tag )?"([^\"]+)" should be hidden$/ do |tag, selector_or_text|
   options = {}
   tag ? options.store(:selector, selector_or_text) : options.store(:text, selector_or_text)
 
@@ -516,17 +516,23 @@ When /^I fill in "([^"]*)" with "([^"]*)" inside any "([^"]*)"$/ do |field, valu
 end
 
 When /^I confirm the browser dialog$/ do
-  page.driver.browser.switch_to.alert.accept
+  patiently do
+    page.driver.browser.switch_to.alert.accept
+  end
 end
 
 When /^I cancel the browser dialog$/ do
-  page.driver.browser.switch_to.alert.dismiss
+  patiently do
+    page.driver.browser.switch_to.alert.dismiss
+  end
 end
 
 When /^I enter "([^"]*)" into the browser dialog$/ do |text|
-  alert = page.driver.browser.switch_to.alert
-  alert.send_keys(text)
-  alert.accept
+  patiently do
+    alert = page.driver.browser.switch_to.alert
+    alert.send_keys(text)
+    alert.accept
+  end
 end
 
 When /^I switch to the new tab$/ do
@@ -581,7 +587,7 @@ Then /^the "([^\"]*)" field should( not)? be visible$/ do |label, hidden|
             return(field.is(':visible'));
           })();
       ].gsub(/\n/, ' ')
-      page.evaluate_script(visibility_detecting_javascript).should == !hidden
+      page.execute_script(visibility_detecting_javascript).should == !hidden
     end
   else
     expectation = hidden ? :should_not : :should
@@ -596,7 +602,7 @@ When /^I wait for the page to load$/ do
   if [:selenium, :webkit, :poltergeist].include?(Capybara.current_driver)
     patiently do
       # when no jQuery is loaded, we assume there are no pending AJAX requests
-      page.evaluate_script("typeof jQuery === 'undefined' || $.active == 0").should == true
+      page.execute_script("return typeof jQuery === 'undefined' || $.active == 0;").should == true
     end
   end
   page.has_content? ''
@@ -625,7 +631,7 @@ end
 When /^I go back$/ do
   case Capybara::current_driver
   when :selenium, :webkit
-    page.evaluate_script('window.history.back()')
+    page.execute_script('window.history.back()')
   else
     if page.driver.respond_to?(:browser)
       visit page.driver.browser.last_request.env['HTTP_REFERER']
